@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: flask-mysql-db-prod
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      FLASK_ENV: production
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flask-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  web:
+    image: ${DOCKER_USERNAME}/flask-pipeline-app:latest  # Docker Hub から取得
+    container_name: flask-web-prod
+    ports:
+      - "80:5000"
+    environment:
+      DB_HOST: db
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+      FLASK_ENV: production
+    networks:
+      - flask-network
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  db-data:
+
+networks:
+  flask-network:
+    driver: bridge

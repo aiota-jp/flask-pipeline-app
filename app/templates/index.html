@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ユーザー管理アプリ - Flask + MySQL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .users-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        .user-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .user-card:hover {
+            transform: translateX(5px);
+        }
+        .user-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .user-info p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .user-meta {
+            color: #999;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+        .btn-delete:hover {
+            background: #c82333;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐳 ユーザー管理アプリ</h1>
+            <p>Flask + MySQL + Docker Compose</p>
+        </div>
+        
+        <div class="content">
+            {% if error %}
+            <div class="error">
+                <strong>エラー:</strong> {{ error }}
+            </div>
+            {% endif %}
+            
+            <div class="form-section">
+                <h2>➕ 新規ユーザー登録</h2>
+                <form action="/add" method="POST">
+                    <div class="form-group">
+                        <label for="name">名前</label>
+                        <input type="text" id="name" name="name" required placeholder="山田太郎">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">メールアドレス</label>
+                        <input type="email" id="email" name="email" required placeholder="taro@example.com">
+                    </div>
+                    <button type="submit" class="btn">登録</button>
+                </form>
+            </div>
+            
+            <div class="users-section">
+                <h2>👥 ユーザー一覧 <span class="badge">{{ users|length }}</span></h2>
+                
+                {% if users %}
+                    {% for user in users %}
+                    <div class="user-card">
+                        <div class="user-info">
+                            <h3>{{ user.name }}</h3>
+                            <p>📧 {{ user.email }}</p>
+                            <div class="user-meta">
+                                ID: {{ user.id }} | 登録日時: {{ user.created_at }}
+                            </div>
+                        </div>
+                        <a href="/delete/{{ user.id }}" class="btn-delete" 
+                           onclick="return confirm('{{ user.name }} を削除しますか？')">削除</a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p>ユーザーが登録されていません</p>
+                        <p>上のフォームから新規ユーザーを登録してください</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

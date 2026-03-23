@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: flask-mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: flaskdb
+      MYSQL_USER: flaskuser
+      MYSQL_PASSWORD: flaskpass
+      FLASK_ENV: development
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - flask-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  web:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: flask-web
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_USER: flaskuser
+      DB_PASSWORD: flaskpass
+      DB_NAME: flaskdb
+    volumes:
+      - ./app:/app
+    networks:
+      - flask-network
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  db-data:
+
+networks:
+  flask-network:
+    driver: bridge
